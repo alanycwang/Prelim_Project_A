@@ -8,8 +8,9 @@ from datetime import datetime
 
 import timeEntry
 import xrs
-import flare
-
+import flarescreen
+import screen
+import _thread
 import sunpy
 
 
@@ -23,11 +24,12 @@ class App(tk.Tk):
         self.style = ttk.Style()
         self.style.configure("TTreeview", padding=0, background="#ffffff", borderwidth=0)
 
-        self.graph = xrs.XRS(self, self.style)
+        self.screens = [xrs.XRS(self, self.style)]
+        self.current_screen = 0
 
-        self.dateEntry()
+        self.date_entry()
 
-    def dateEntry(self):
+    def date_entry(self):
         self.entryFrameContainer = ttk.Frame(self, borderwidth=20)
         self.entryFrame = ttk.Frame(self.entryFrameContainer)
 
@@ -62,13 +64,42 @@ class App(tk.Tk):
         self.end_time.minute.insert(0, "00")
         self.end_time.frame.grid(row=5, column=1, sticky="NW")
 
-        self.graph_button = ttk.Button(self.entryFrameContainer, text='Graph!', command=self.graphDate)
+        self.graph_button = ttk.Button(self.entryFrameContainer, text='Graph!', command=self.graph_date)
         self.graph_button.grid(row=3, column=0, sticky="NW")
+
+        self.next_button = ttk.Button(self.entryFrameContainer, text='Next', command=self.next_screen)
+
+        self.back_button = ttk.Button(self.entryFrameContainer, text='Back', command=self.last_screen)
 
         self.entryFrame.grid(row=2, column=0, sticky="NW")
         self.entryFrameContainer.grid(row=0, column=0, sticky="NW")
 
-    def graphDate(self):
+    def show_button(self):
+        self.next_button.grid(row=4, column=0, sticky="NW")
+
+    def next_screen(self):
+        if self.current_screen == 0:
+            flare = self.screens[0].peaks[int(self.screens[0].list.item(self.screens[0].list.focus())['text'])]
+            if len(self.screens) <= 1:
+                self.screens.append(flarescreen.FlareScreen(self, self.style, flare, self.screens[0].ts1))
+            else:
+                self.screens[1] = flarescreen.FlareScreen(self, self.style, flare, self.screens[0].ts1)
+
+        self.back_button.grid(row=5, column=0, sticky="NW")
+        if self.current_screen >= len(self.screens) - 1:
+            return
+        self.screens[self.current_screen].clear()
+        self.current_screen += 1
+        self.screens[self.current_screen].restore()
+
+    def last_screen(self):
+        if self.current_screen <= 0:
+            return
+        self.screens[self.current_screen].clear()
+        self.current_screen -= 1
+        self.screens[self.current_screen].restore()
+
+    def graph_date(self):
         if (not self.start_time.get_time()):
             self.error_message.config(text="Please enter a valid start time")
             return
@@ -98,14 +129,14 @@ class App(tk.Tk):
 
         self.error_message.config(text="")
 
-        for widget in self.all_children(self.graph.frame):
+        for widget in self.all_children(self.screens[0].frame):
             widget.grid_forget()
-        self.graph.frame.update()
+        self.screens[0].frame.update()
 
         # print(str(start_date_time))
 
         try:
-            self.graph.graph(str(start_date_time), str(end_date_time))
+            _thread.start_new_thread(self.screens[0].graph, (str(start_date_time), str(end_date_time)))
         except urllib.error.URLError:
             self.error_message.config(text="Something went wrong with the server. Please try again later")
             return
@@ -116,7 +147,7 @@ class App(tk.Tk):
         #     self.error_message.config(text="Could not find any data for this time interval. Please try a different time")
         #     return
 
-        # selection = self.graph.get_selection()
+        # selection = self.screens[0].get_selection()
 
     def all_children(self, window):
         list = window.winfo_children()

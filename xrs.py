@@ -20,13 +20,12 @@ from sunpy.net import attrs as a
 from sunpy.time import parse_time
 
 import flare
+import screen
 
-class XRS():
+class XRS(screen.Screen):
     def __init__(self, root, style):
-        self.root = root
-        self.style = style
+        super().__init__(root, style)
 
-        self.frame = ttk.Frame(self.root, borderwidth=20)
         self.listframe = tk.Frame(self.frame)
         self.canvasframe = ttk.Frame(self.frame)
 
@@ -60,10 +59,10 @@ class XRS():
         self.ts1 = self.getTS(tstart, tend)
         self.ts1 = self.ts1.truncate(tstart, tend)
 
-        fig, ax = plt.subplots()
-        ax.plot(self.ts1.index, convolve(np.gradient(self.ts1.quantity('xrsb')), kernel=Box1DKernel(100)))
-        fig.autofmt_xdate()
-        plt.show()
+        # fig, ax = plt.subplots()
+        # ax.plot(self.ts1.index, convolve(np.gradient(self.ts1.quantity('xrsb')), kernel=Box1DKernel(100)))
+        # fig.autofmt_xdate()
+        # plt.show()
 
         self.ts1.data['xrsa'] = convolve(self.ts1.quantity('xrsa'), kernel=Box1DKernel(100))
         self.ts1.data['xrsb'] = convolve(self.ts1.quantity('xrsb'), kernel=Box1DKernel(100))
@@ -166,7 +165,7 @@ class XRS():
 
     def flareslist(self):
         self.listframe = ttk.Frame(self.frame)
-        self.listtitle = ttk.Label(self.listframe, text="Detected Flares:")
+        self.listtitle = ttk.Label(self.listframe, text="")
         self.treeviewframe = ttk.Frame(self.listframe)
         self.load_frame = ttk.Frame(self.listframe)
         self.bar = ttk.Progressbar(self.load_frame, maximum = len(self.peaks))
@@ -230,6 +229,7 @@ class XRS():
 
         flare = self.peaks[int(self.list.item(self.list.focus())['text'])]
         fig = plt.figure()
+        fig.set_size_inches(6.4, 4.855)
         ax = plt.subplot(projection=flare.map)
         flare.map.plot(ax)
         ax.plot_coord(flare.coords, 'wx', fillstyle='none', markersize=10)
@@ -239,5 +239,7 @@ class XRS():
         self.aiacanvas.draw()
         self.aiacanvas.get_tk_widget().grid(row=0, column=0)
         self.aiacanvasframe.grid(row=1, column=1, sticky="NW", padx=(20, 0))
+
+        self.root.show_button()
 
 
