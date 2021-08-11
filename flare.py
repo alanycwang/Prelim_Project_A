@@ -5,6 +5,7 @@ import sunpy.map
 
 import astropy.time
 import astropy.units as u
+from astropy.convolution import Box1DKernel, convolve
 
 from scipy import ndimage
 
@@ -202,7 +203,6 @@ class Flare():
 
             data.append(sum/image.meta['exptime']/image.meta.original_meta['aectype'])
             times.append(image.date.datetime)
-
         self.graphs[wavelength] = [times, data]
 
 

@@ -150,6 +150,7 @@ class FlareScreen(screen.Screen):
                 wavelengthlabel.configure(text="Processing wavelength " + str(wavelength))
                 self.frame.update()
 
+                print(self.x_selection, self.y_selection)
                 self.flare.get_graphs(wavelength, progressbar=imagebar, progresslabel=imagelabel, x=self.x_selection, y=self.y_selection)
                 temp = self.ax.twinx()
                 self.aiaplots[wavelength] = temp
@@ -183,10 +184,10 @@ class FlareScreen(screen.Screen):
         y = event.ydata
         xmin, xmax = self.xlim
         ymin, ymax = self.ylim
-        self.x_selection = 4096 * (x - xmin)/(xmax - xmin)
+        self.x_selection = 4096 * (y - ymin)/(ymax - ymin)
         self.y_selection = 4096 * (x - xmin)/(xmax - xmin)
-
         self.draw_box(x, y, 250/4096 * (xmax - xmin))
+        print(self.x_selection, self.y_selection)
 
     def draw_box(self, x, y, w):
         if self.rect is not None:
