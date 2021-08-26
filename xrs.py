@@ -3,6 +3,7 @@ import datetime
 import pandas as pd
 import statistics
 import os
+import urllib
 
 import tkinter as tk
 from tkinter import ttk
@@ -14,6 +15,7 @@ from matplotlib.widgets import MultiCursor
 from astropy.convolution import Box1DKernel, convolve
 import astropy.units as u
 
+import sunpy
 from sunpy import timeseries as ts
 from sunpy.net import Fido
 from sunpy.net import attrs as a
@@ -21,15 +23,41 @@ from sunpy.time import parse_time
 
 import flare
 import screen
+import _thread
+import flarescreen
 
 class XRS(screen.Screen):
-    def __init__(self, root, style):
+    def __init__(self, root, style, tstart, tend, from_save=False, ts=None, peaks=None, flares=[]):
         super().__init__(root, style)
 
         self.listframe = tk.Frame(self.frame)
         self.canvasframe = ttk.Frame(self.frame)
 
+        self.screens = {}
+        self.flare = None
+        self.flares = flares
+        self.ts1 = ts
+        self.tstart = tstart
+        self.tend = tend
+        self.peaks = peaks
+        for flare in flares:
+            self.screens[flare.peak] = flarescreen.FlareScreen(self.root, self.style, flare, self.ts1)
+
         self.load_text = ttk.Label(self.frame, text="Downloading XRS Data...")
+        try:
+            _thread.start_new_thread(self.graph, (tstart, tend))
+        except urllib.error.URLError:
+            self.load_text.config(text="Something went wrong with the server. Please try again later")
+            return
+        except sunpy.util.datatype_factory_base.NoMatchError:
+            self.load_text.config(text="Unfortunately, the downloaded file was corrupted. Please try a different date")
+            return
+
+        if len(self.flares) > 0:
+            self.get_selection(None, self.flares[0])
+
+        self.clear()
+
 
     def getTS(self, tstart, tend):
         if tstart < "2020-03-01 00:00" and tend > "2020-03-01 00:00":
@@ -56,25 +84,27 @@ class XRS(screen.Screen):
             return ts.TimeSeries(Fido.fetch(result), concatenate=True)
 
     def graphTS(self, tstart, tend):
-        self.ts1 = self.getTS(tstart, tend)
-        self.ts1 = self.ts1.truncate(tstart, tend)
+        if self.ts1 is None:
+            self.ts1 = self.getTS(tstart, tend)
+            self.ts1 = self.ts1.truncate(tstart, tend)
 
-        # fig, ax = plt.subplots()
-        # ax.plot(self.ts1.index, convolve(np.gradient(self.ts1.quantity('xrsb')), kernel=Box1DKernel(100)))
-        # fig.autofmt_xdate()
-        # plt.show()
+            # fig, ax = plt.subplots()
+            # ax.plot(self.ts1.index, convolve(np.gradient(self.ts1.quantity('xrsb')), kernel=Box1DKernel(100)))
+            # fig.autofmt_xdate()
+            # plt.show()
 
-        self.ts1.data['xrsa'] = convolve(self.ts1.quantity('xrsa'), kernel=Box1DKernel(100))
-        self.ts1.data['xrsb'] = convolve(self.ts1.quantity('xrsb'), kernel=Box1DKernel(100))
+            self.ts1.data['xrsa'] = convolve(self.ts1.quantity('xrsa'), kernel=Box1DKernel(100))
+            self.ts1.data['xrsb'] = convolve(self.ts1.quantity('xrsb'), kernel=Box1DKernel(100))
+
+            self.df = self.ts1.to_dataframe()
+
+            self.peaks = self.findpeaks_derivative(self.ts1)
 
         self.fig = plt.figure()
         self.ax = self.ts1.plot()
 
         self.fig.set_size_inches(15.63, 4)
 
-        self.df = self.ts1.to_dataframe()
-
-        self.peaks = self.findpeaks_derivative(self.ts1)
         for flare in self.peaks:
             self.ax.axvline(flare.peak)
             self.ax.axvspan(flare.start,
@@ -99,7 +129,6 @@ class XRS(screen.Screen):
     def graph(self, tstart, tend):
         self.canvasframe = tk.Frame(self.frame, background='#81868F', padx=1, pady=1)
 
-        self.frame.grid(row=0, column=1)
         self.canvasframe.grid(row=0, column=0)
         self.load_text.grid(row=0, column=1, sticky="NW")
         self.load_text.update()
@@ -217,7 +246,7 @@ class XRS(screen.Screen):
         self.list.pack(side='left')
         # self.scrollbar.pack(side='right', fill='x')
 
-    def get_selection(self, event):
+    def get_selection(self, event, flare=None):
         try:
             self.aiacanvas.get_tk_widget().grid_forget()
         except AttributeError:
@@ -227,12 +256,15 @@ class XRS(screen.Screen):
 
         self.aiacanvasframe = tk.Frame(self.listframe, background='#81868F', padx=1, pady=1)
 
-        flare = self.peaks[int(self.list.item(self.list.focus())['text'])]
+        if flare is None:
+            self.flare = self.peaks[int(self.list.item(self.list.focus())['text'])]
+        else:
+            self.flare = flare
         fig = plt.figure()
         fig.set_size_inches(6.4, 4.855)
-        ax = plt.subplot(projection=flare.map)
-        flare.map.plot(ax)
-        ax.plot_coord(flare.coords, 'wx', fillstyle='none', markersize=10)
+        ax = plt.subplot(projection=self.flare.map)
+        self.flare.map.plot(ax)
+        ax.plot_coord(self.flare.coords, 'wx', fillstyle='none', markersize=10)
         plt.colorbar()
 
         self.aiacanvas = FigureCanvasTkAgg(fig, master=self.aiacanvasframe)
@@ -240,6 +272,11 @@ class XRS(screen.Screen):
         self.aiacanvas.get_tk_widget().grid(row=0, column=0)
         self.aiacanvasframe.grid(row=1, column=1, sticky="NW", padx=(20, 0))
 
-        self.root.show_button()
-
-
+    def next(self):
+        print("here")
+        if self.flare is not None:
+            print("working")
+            if self.flare.peak not in self.screens:
+                print("idk at this point")
+                self.screens[self.flare.peak] = flarescreen.FlareScreen(self.root, self.style, self.flare, self.ts1)
+            return self.screens[self.flare.peak]

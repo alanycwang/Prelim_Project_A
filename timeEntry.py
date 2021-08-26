@@ -5,13 +5,13 @@ class TimeEntry():
     def __init__(self, root):
         self.root = root
 
-        self.frame = ttk.Frame(self.root)
+        self.frame = tk.Frame(self.root, background='#FFFFFF')
 
         hvcmd = (self.root.register(self.validate_hour), '%P')
         self.hour = ttk.Entry(self.frame, validate='all', validatecommand=hvcmd, width=4)
         self.hour.grid(row=0, column=0, sticky="NW")
 
-        self.colon = ttk.Label(self.frame, text=":")
+        self.colon = tk.Label(self.frame, text=":", background='#FFFFFF')
         self.colon.grid(row=0, column=1, sticky="NW")
 
         mvcmd = (self.root.register(self.validate_minute), '%P')

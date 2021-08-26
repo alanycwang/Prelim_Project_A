@@ -35,6 +35,9 @@ class Flare():
         self.images = {}
         self.graphs = {}
 
+    def __eq__(self, other):
+        return self.start == other.start
+
 
 
     def get_class(self):
