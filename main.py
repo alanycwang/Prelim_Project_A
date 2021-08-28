@@ -33,28 +33,16 @@ class App(tk.Tk):
         self.save_button = ttk.Button(self.navigationFrame, text='Save Progress', command=self.save)
 
         self.navigationFrame.grid(row=0, column=0, sticky="NW", padx=(20, 0), pady=(20, 0))
-        self.next_button.grid(row=0, column=1, padx=(0, 20))
-        self.back_button.grid(row=0, column=0, padx=(0, 20))
+        self.next_button.grid(row=0, column=1, padx=(0, 10))
+        self.back_button.grid(row=0, column=0, padx=(0, 10))
         self.save_button.grid(row=0, column=2)
-
-        self.load_button = ttk.Button(self.navigationFrame, text='Load Progress', command=self.load)
-        self.load_button.grid(row=0, column=3)
 
     def save(self):
         path = asksaveasfile(filetypes=[('Pickle Files', '*.pkl')], defaultextension=[("Pickle Files", "*.pkl")])
         pickle.dump(savefile.SaveFile(self.screens), open(path.name, 'wb'))
         print("Saved File to " + path.name)
 
-    def load(self):
-        path = tk.filedialog.askopenfilename(filetypes=[("Pickle Files", "*.pkl")])
-        if len(self.screens) > 1:
-            del self.screens[1:]
-        self.screens.append(savefile.generate_screens(pickle.load(open(path, "rb")), self.screenFrame, self.style))
-        self.loaded = True
-
     def next_screen(self):
-
-        print("asfdjk;")
 
         # if self.current_screen == 0:
         #     flare = self.screens[0].peaks[int(self.screens[0].list.item(self.screens[0].list.focus())['text'])]
@@ -64,12 +52,12 @@ class App(tk.Tk):
         #         self.screens[1] = flarescreen.FlareScreen(self, self.style, flare, self.screens[0].ts1)
 
         self.screens[self.current_screen].clear()
-        if self.current_screen > 0 or not self.loaded:
-            new_screen = self.screens[self.current_screen].next()
-        if (not self.loaded or self.current_screen > 0) and new_screen is not None:
+        new_screen = self.screens[self.current_screen].next()
+        if new_screen == "error":
+            return
+        if new_screen is not None:
             del self.screens[self.current_screen + 1:]
             self.screens.append(new_screen)
-            print("idk, the program doesn't work either way")
         if self.current_screen >= len(self.screens) - 1:
             self.screens[self.current_screen].restore()
             return

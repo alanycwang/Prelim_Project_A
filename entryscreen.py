@@ -7,16 +7,21 @@ from datetime import datetime
 
 import screen
 import timeEntry
-
+import savefile
 import xrs
+import pickle
+import os
 
 class EntryScreen(screen.Screen):
     def __init__(self, root, style):
         super().__init__(root, style)
 
         self.date_entry()
+        self.file_loader()
         self.last_start_time = None
         self.last_end_time = None
+        self.path=None
+        self.previous_path=None
 
     def date_entry(self):
         self.dateentry = tk.Frame(self.frame)
@@ -67,17 +72,37 @@ class EntryScreen(screen.Screen):
         self.fileloaderbackground = tk.Frame(self.fileloader, background='#FFFFFF')
 
         self.fileloaderlabel = tk.Label(self.fileloaderbackground, text="Option 2: Load data from a save file", background='#FFFFFF')
-        self.fileloaderlabel.grid(row=0, column=0, sticky="N", padx=(20, 0), pady=(20, 0))
+        self.fileloaderlabel.grid(row=0, column=0, sticky="NW", padx=(20, 60), pady=(20, 0))
 
-        self.loadbutton = tk.Button(self.fileloaderbackground, text="Select a file", )
+        self.loadbutton = ttk.Button(self.fileloaderbackground, text="Select a file", command=self.load)
+        self.loadbutton.grid(row=1, column=0, sticky="NW", padx=(20, 0), pady=(20, 0))
+
+        self.unloadbutton = ttk.Button(self.fileloaderbackground, text="Unload File", command=self.unload)
+        self.unloadbutton.grid(row=2, column=0, sticky="NW", padx=(20, 0), pady=(10, 0))
+
+        self.filetext = tk.Label(self.fileloaderbackground, text="No file loaded", background="#FFFFFF")
+        self.filetext.grid(row=3, column=0, sticky="NW", padx=(20, 20), pady=(20, 20))
 
         self.fileloaderbackground.grid(row=0, column=0)
-        self.fileloader.grid(row=0, column=1)
+        self.fileloader.grid(row=0, column=1, padx=(20, 20))
 
-    def create_screen(self, tstart, tend):
-        self.xrs = xrs.XRS(self.root, self.style, tstart, tend)
+    def load(self):
+        self.path = tk.filedialog.askopenfilename(filetypes=[("Pickle Files", "*.pkl")])
+        self.filetext.configure(text="Loaded: " + self.path, fg="black")
+
+    def unload(self):
+        self.path = None
+        self.filetext.configure(text="No file loaded", fg="black")
 
     def next(self):
+        if self.path is not None:
+            try:
+                return savefile.generate_screens(pickle.load(open(self.path, "rb")), self.root, self.style)
+            except:
+                self.filetext.configure(text="Something went wrong, please try again", fg="black")
+                return "error"
+
+
         if not self.start_time.get_time():
             self.error_message.config(text="Please enter a valid start time")
             return

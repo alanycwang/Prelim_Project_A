@@ -13,6 +13,7 @@ import screen
 import datetime
 import numpy as np
 import _thread
+import moviescreen
 
 import time
 
@@ -160,9 +161,9 @@ class FlareScreen(screen.Screen):
                 self.aiaplots[wavelength].tick_params(axis='y', which='both', left=False, right=False, labelleft=False,
                                                       labelright=False)
 
-                fig, ax = plt.subplots()
-                ax.plot(self.flare.graphs[wavelength][0], np.gradient(self.flare.graphs[wavelength][1]))
-                plt.show()
+                # fig, ax = plt.subplots()
+                # ax.plot(self.flare.graphs[wavelength][0], np.gradient(self.flare.graphs[wavelength][1]))
+                # plt.show()
 
                 wavelengthbar.step()
                 imagebar.grid_forget()
@@ -189,7 +190,6 @@ class FlareScreen(screen.Screen):
         self.x_selection = 4096 * (y - ymin)/(ymax - ymin)
         self.y_selection = 4096 * (x - xmin)/(xmax - xmin)
         self.draw_box(x, y, 250/4096 * (xmax - xmin))
-        print(self.x_selection, self.y_selection)
 
     def draw_box(self, x, y, w):
         if self.rect is not None:
@@ -199,40 +199,42 @@ class FlareScreen(screen.Screen):
         self.image.draw()
         self.frame.update()
 
-    def start_movie(self):
-        self.movieframe = tk.Frame(self.frame, background='#81868F', padx=1, pady=1)
-        self.movieframe.grid(row=0, column=2, padx=(20, 20))
-        w = 0
-        longest = 0
-        for wavelength in [171, 193, 211, 335, 94, 131]:
-            if wavelength in self.flare.graphs and len(self.flare.graphs[wavelength]) > longest:
-                longest = len(self.flare.graphs[wavelength])
-                w = wavelength
+    # def start_movie(self):
+    #     self.movieframe = tk.Frame(self.frame, background='#81868F', padx=1, pady=1)
+    #     self.movieframe.grid(row=0, column=2, padx=(20, 20))
+    #     w = 0
+    #     longest = 0
+    #     for wavelength in [171, 193, 211, 335, 94, 131]:
+    #         if wavelength in self.flare.graphs and len(self.flare.graphs[wavelength]) > longest:
+    #             longest = len(self.flare.graphs[wavelength])
+    #             w = wavelength
+    #
+    #     images = []
+    #     for image in self.flare.images[w]:
+    #         fig = plt.figure()
+    #         fig.set_size_inches(6, 5.36)
+    #         ax = plt.subplot(projection=image)
+    #         image.plot(ax)
+    #         ax.plot_coord(self.flare.coords, 'wx', fillstyle='none', markersize=10)
+    #
+    #         moviecanvas = FigureCanvasTkAgg(fig, master=self.movieframe)
+    #         moviecanvas.draw()
+    #         images.append(moviecanvas)
+    #     _thread.start_new_thread(self.cycle, (images,))
+    #
+    # def cycle(self, images):
+    #     idx = 0
+    #     while self.active:
+    #         images[idx].get_tk_widget().grid(row=0, column=0)
+    #         self.frame.update()
+    #         time.sleep(0.5)
+    #         images[idx].get_tk_widget().grid_forget()
+    #         idx += 1
+    #         if idx >= len(images):
+    #             idx = 0
 
-        images = []
-        for image in self.flare.images[w]:
-            fig = plt.figure()
-            fig.set_size_inches(6, 5.36)
-            ax = plt.subplot(projection=image)
-            image.plot(ax)
-            ax.plot_coord(self.flare.coords, 'wx', fillstyle='none', markersize=10)
-
-            moviecanvas = FigureCanvasTkAgg(fig, master=self.movieframe)
-            moviecanvas.draw()
-            images.append(moviecanvas)
-        _thread.start_new_thread(self.cycle, (images,))
-
-    def cycle(self, images):
-        idx = 0
-        while self.active:
-            images[idx].get_tk_widget().grid(row=0, column=0)
-            self.frame.update()
-            time.sleep(0.5)
-            images[idx].get_tk_widget().grid_forget()
-            idx += 1
-            if idx >= len(images):
-                idx = 0
-
+    def next(self):
+        return moviescreen.MovieScreen(self.root, self.style, self.flare)
 
 
 

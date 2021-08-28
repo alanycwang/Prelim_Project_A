@@ -273,10 +273,7 @@ class XRS(screen.Screen):
         self.aiacanvasframe.grid(row=1, column=1, sticky="NW", padx=(20, 0))
 
     def next(self):
-        print("here")
         if self.flare is not None:
-            print("working")
             if self.flare.peak not in self.screens:
-                print("idk at this point")
                 self.screens[self.flare.peak] = flarescreen.FlareScreen(self.root, self.style, self.flare, self.ts1)
             return self.screens[self.flare.peak]
