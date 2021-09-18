@@ -16,10 +16,10 @@ from statistics import median, mean
 import os
 
 class Flare():
-    def __init__(self, start, peak, end, flux):
+    def __init__(self, start, peak, flux):
         self.start = start
         self.peak = peak
-        self.end = end
+        self.end = None
         self.flux = flux
 
         self.map = None
@@ -121,7 +121,7 @@ class Flare():
             #         self.map = map
             #         break
 
-            self.map = self.get_file(a.Time(t, t + 2*u.minute), 193)
+            self.map = self.get_file(a.Time(t, t + 2*u.minute), 171)
 
             brightest = np.argwhere(self.map.data == self.map.data.max())
             print(brightest)
@@ -152,7 +152,7 @@ class Flare():
                 count += 1
                 progresslabel._nametowidget(progresslabel.winfo_parent()).update()
 
-            image = (self.get_file(a.Time(peak + interval*(i + 1), peak + interval*(i + 2) + 1*u.minute), wavelength))
+            image = self.normalize(self.get_file(a.Time(peak + interval*(i + 1), peak + interval*(i + 2) + 1*u.minute), wavelength))
             if image is None:
                 print("Skipped File at time" + str(peak + interval*(i + 1)))
                 continue
@@ -167,7 +167,7 @@ class Flare():
                 count += 1
                 progresslabel._nametowidget(progresslabel.winfo_parent()).update()
 
-            image = self.get_file(a.Time(peak - interval*(i + 1), peak - interval*i + 1*u.minute), wavelength)
+            image = self.normalize(self.get_file(a.Time(peak - interval*(i + 1), peak - interval*i + 1*u.minute), wavelength))
             if image is None:
                 print("Skipped File at time" + str(peak - interval*(i + 1)))
                 continue
@@ -204,9 +204,12 @@ class Flare():
                 for j in range(int(ymin + 0.5), int(ymax + 0.5)):
                     sum += df[i][j]
 
-            data.append(sum/image.meta['exptime']/image.meta.original_meta['aectype'])
+            data.append(sum)
             times.append(image.date.datetime)
         self.graphs[wavelength] = [times, data]
+
+    def normalize(self, image):
+        return sunpy.map.Map(image.data/image.meta['exptime'], image.meta)
 
 
 

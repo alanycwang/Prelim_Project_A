@@ -15,8 +15,9 @@ class App(tk.Tk):
         self.title("Prelim Project A")
         self.geometry('1920x1080')
 
-        self.style = ttk.Style()
+        self.style = ttk.Style(self)
         self.style.configure("TTreeview", padding=0, background="#ffffff", borderwidth=0)
+        self.style.configure("Horizontal.TScale", background='#ffffff')
 
         self.screenFrame = tk.Frame(self)
         self.screenFrame.grid(row = 1, column=0, padx=(20, 0), pady=(20, 0), sticky="NW")

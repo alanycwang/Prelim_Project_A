@@ -73,7 +73,7 @@ class XRS(screen.Screen):
                 idx -= 1
             path = './Data/' + path[idx+1:]
             if os.path.exists(path):
-                print('Found existing file at ' + path)
+                print(f'Found existing file at {path}')
                 files.append(path)
             else:
                 files.append(Fido.fetch(file, path='./Data/{file}'))
@@ -95,7 +95,6 @@ class XRS(screen.Screen):
 
             self.ts1.data['xrsa'] = convolve(self.ts1.quantity('xrsa'), kernel=Box1DKernel(100))
             self.ts1.data['xrsb'] = convolve(self.ts1.quantity('xrsb'), kernel=Box1DKernel(100))
-
             self.df = self.ts1.to_dataframe()
 
             self.peaks = self.findpeaks_derivative(self.ts1)
@@ -105,11 +104,16 @@ class XRS(screen.Screen):
 
         self.fig.set_size_inches(15.63, 4)
 
+        c = True
         for flare in self.peaks:
-            self.ax.axvline(flare.peak)
-            self.ax.axvspan(flare.start,
-                       flare.end,
-                       alpha=0.2)
+            color='#ff6f00'
+            if c:
+                color = '#ff4800'
+            c = not c
+
+            self.ax.axvline(flare.peak, color=color)
+            #print(type(flare.end), type(flare.peak), flare.end)
+            self.ax.axvspan(flare.start, flare.end, alpha=0.2, color=color)
 
         self.ax.set_xlabel('Time')
         self.ax.set_ylabel("Flux Wm$^{-2}$")
@@ -152,26 +156,25 @@ class XRS(screen.Screen):
     def findpeaks_derivative(self, series):
         bg_threshold = 0.1e-9 * u.W/u.m/u.m
         peak_delta = 1e-9 * u.W/u.m/u.m
-        valley_delta = -1e-10 * u.W/u.m/u.m
+        valley_delta = -0.9e-10 * u.W/u.m/u.m
 
         bg_time = 0
         peaks = []
         start = 0
         peak = 0
-
+        current = []
         flux = convolve(np.gradient(series.quantity('xrsb')), kernel=Box1DKernel(100))
         times = series.index
 
         find_peak = False
         found_peak = False
-        find_end = False
-        for i in range(len(times)):
+        for i in range(len(times))[100:-100]:
             # print(flux[i], times[i], find_peak, found_peak, find_end)
 
-            if abs(flux[i]) <= bg_threshold and not find_peak and not found_peak and not find_end:
+            if abs(flux[i]) <= bg_threshold and not find_peak and not found_peak:
                 bg_time = times[i]
 
-            if flux[i] > peak_delta and not find_peak and not found_peak and not find_end:
+            if flux[i] > peak_delta and not find_peak and not found_peak:
                 start = bg_time
                 find_peak = True
 
@@ -181,12 +184,19 @@ class XRS(screen.Screen):
                 find_peak = False
 
             if found_peak and flux[i] <= valley_delta:
-                find_end = True
                 found_peak = False
+                current.append(flare.Flare(start, peak, self.df['xrsb'][peak]))
 
-            if find_end and flux[i] >= -bg_threshold:
-                find_end = False
-                peaks.append(flare.Flare(start, peak, times[i], self.df['xrsb'][peak]))
+            to_remove = []
+            for j, f in enumerate(current):
+                if self.df['xrsb'][i] <= (self.df['xrsb'][f.peak] + self.df['xrsb'][f.start])/2:
+                    f.end = times[i]
+                    #print(f.end)
+                    peaks.append(f)
+                    to_remove.append(j)
+            for item in reversed(to_remove):
+                current.pop(item)
+
 
         if peaks[0].start == 0:
             return peaks[1:]
