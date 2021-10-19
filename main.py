@@ -18,19 +18,24 @@ class App(tk.Tk):
         self.style = ttk.Style(self)
         self.style.configure("TTreeview", padding=0, background="#ffffff", borderwidth=0)
         self.style.configure("Horizontal.TScale", background='#ffffff')
+        self.style.configure('TCheckbutton', background='#FFFFFF')
 
-        self.screenFrame = tk.Frame(self)
-        self.screenFrame.grid(row = 1, column=0, padx=(20, 0), pady=(20, 0), sticky="NW")
-        self.screens = [entryscreen.EntryScreen(self.screenFrame, self.style)]
-        self.current_screen = 0
+        self.tabFrame = tk.Frame(self)
+        self.tabFrame.grid(row = 1, column=0, padx=(20, 0), pady=(20, 0), sticky="NW")
+
+        self.tab_parent = ttk.Notebook(self.tabFrame)
+        new = entryscreen.EntryScreen(self.tab_parent)
+        print(str(new))
+        self.screens = {str(new) : new}
+        self.tab_parent.add(new, text=new.id)
         self.show_navigation()
-
+        self.tab_parent.grid(row=0, column=0)
         self.loaded = False
 
     def show_navigation(self):
         self.navigationFrame = tk.Frame(self)
         self.next_button = ttk.Button(self.navigationFrame, text='Next', command=self.next_screen)
-        self.back_button = ttk.Button(self.navigationFrame, text='Back', command=self.last_screen)
+        self.back_button = ttk.Button(self.navigationFrame, text='Back')
         self.save_button = ttk.Button(self.navigationFrame, text='Save Progress', command=self.save)
 
         self.navigationFrame.grid(row=0, column=0, sticky="NW", padx=(20, 0), pady=(20, 0))
@@ -52,25 +57,13 @@ class App(tk.Tk):
         #     else:
         #         self.screens[1] = flarescreen.FlareScreen(self, self.style, flare, self.screens[0].ts1)
 
-        self.screens[self.current_screen].clear()
-        new_screen = self.screens[self.current_screen].next()
-        if new_screen == "error":
-            return
-        if new_screen is not None:
-            del self.screens[self.current_screen + 1:]
-            self.screens.append(new_screen)
-        if self.current_screen >= len(self.screens) - 1:
-            self.screens[self.current_screen].restore()
-            return
-        self.current_screen += 1
-        self.screens[self.current_screen].restore()
-
-    def last_screen(self):
-        if self.current_screen <= 0:
-            return
-        self.screens[self.current_screen].clear()
-        self.current_screen -= 1
-        self.screens[self.current_screen].restore()
+        new = self.screens[self.tab_parent.select()].next()
+        print(new)
+        print(str(new))
+        print(self.tab_parent.select())
+        self.screens[str(new)] = new
+        self.tab_parent.add(new, text=new.id)
+        self.update_idletasks()
 
 if __name__ == "__main__":
     app = App()

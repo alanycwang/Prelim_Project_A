@@ -18,11 +18,11 @@ import moviescreen
 import time
 
 class FlareScreen(screen.Screen):
-    def __init__(self, root, style, flare, ts):
-        super().__init__(root, style)
+    def __init__(self, root, flare, ts):
+        super().__init__(root)
         self.flare = flare
         self.ts = ts
-        self.left_container = tk.Frame(self.frame)
+        self.left_container = tk.Frame(self)
         self.top_left_container = tk.Frame(self.left_container)
         self.rect = None
         self.x_selection = self.flare.x_pixel
@@ -37,11 +37,13 @@ class FlareScreen(screen.Screen):
 
         self.left_container.grid(row=0, column=0, padx=(0, 20), pady=(0, 20))
         self.top_left_container.grid(row=0, column=0, sticky="NW")
-        self.clear()
 
         self.aiaplots = {}
 
+        self.id = "flarescreen"
+
     def flux_graph(self):
+        plt.xticks(rotation=45)
         duration = {'B': 20, 'C': 24, 'M': 48, 'X': 60}[self.flare.classification] * 3
         self.graphframe = tk.Frame(self.left_container, background='#81868F', padx=1, pady=1)
         self.graphframe.grid(row=1, column=0)
@@ -52,18 +54,18 @@ class FlareScreen(screen.Screen):
         self.fig.suptitle("Flare at " + str(self.flare.peak))
         plt.xlabel("Time")
         self.fig.set_size_inches(4.02, 4)
-        plt.xticks(rotation=45)
+        #self.ax.xticks(rotation=45)
 
         self.graph = FigureCanvasTkAgg(self.fig, master=self.graphframe)
         self.graph.draw()
 
         self.graph.get_tk_widget().grid(row=0, column=0)
-        self.frame.update()
+        self.update()
 
     def aia(self):
         fig = plt.figure()
         self.aia_ax = plt.subplot(projection=self.flare.map)
-        self.aiaframe = tk.Frame(self.frame, background='#81868F', padx=1, pady=1)
+        self.aiaframe = tk.Frame(self, background='#81868F', padx=1, pady=1)
         self.aiaframe.grid(row=0, column=1, sticky="NW")
         self.flare.map.plot(self.aia_ax)
         fig.set_size_inches(6, 5.36)
@@ -82,7 +84,7 @@ class FlareScreen(screen.Screen):
         self.image.mpl_connect('button_press_event', self.click)
 
         self.image.get_tk_widget().grid(row=0, column=0)
-        self.frame.update()
+        self.update()
 
     def info_box(self):
         self.infoframe = tk.Frame(self.top_left_container)
@@ -95,7 +97,7 @@ class FlareScreen(screen.Screen):
         self.infoborderframe.grid(row=1, column=0)
         self.labels.grid(row=0, column=0)
         self.values.grid(row=0, column=1)
-        self.frame.update()
+        self.update()
 
     def selection_box(self):
         self.selectionframe = tk.Frame(self.top_left_container)
@@ -104,7 +106,7 @@ class FlareScreen(screen.Screen):
         self.selectionbuttonframe = tk.Frame(self.selectioncontentframe, background='#FFFFFF')
         self.buttons = []
         self.buttonvar = []
-        self.style.configure('TCheckbutton', background='#FFFFFF')
+
         for i, wavelength in enumerate(sorted([171, 193, 211, 335, 94, 131])):
             var = tk.IntVar()
             self.buttonvar.append(var)
@@ -120,7 +122,7 @@ class FlareScreen(screen.Screen):
         self.selectioncontentframe.grid(row=0, column=0)
         self.selectionbuttonframe.grid(row=0, column=0)
 
-        self.frame.update()
+        self.update()
 
     def update_plot(self):
         _thread.start_new_thread(self.plot_aia, ())
@@ -150,9 +152,11 @@ class FlareScreen(screen.Screen):
                 imagelabel.grid(row=1, column=0)
                 imagebar.grid(row=1, column=1)
                 wavelengthlabel.configure(text="Processing wavelength " + str(wavelength))
-                self.frame.update()
+                self.update()
 
-                print(self.x_selection, self.y_selection)
+                plt.xticks(rotation=45)
+
+                #print(self.x_selection, self.y_selection)
                 self.flare.get_graphs(wavelength, progressbar=imagebar, progresslabel=imagelabel, x=self.x_selection, y=self.y_selection)
                 temp = self.ax.twinx()
                 self.aiaplots[wavelength] = temp
@@ -160,7 +164,6 @@ class FlareScreen(screen.Screen):
                 wavelengths.append(str(wavelength))
                 self.aiaplots[wavelength].tick_params(axis='y', which='both', left=False, right=False, labelleft=False,
                                                       labelright=False)
-
                 # fig, ax = plt.subplots()
                 # ax.plot(self.flare.graphs[wavelength][0], np.gradient(self.flare.graphs[wavelength][1]))
                 # plt.show()
@@ -168,8 +171,7 @@ class FlareScreen(screen.Screen):
                 wavelengthbar.step()
                 imagebar.grid_forget()
                 imagelabel.grid_forget()
-                self.frame.update()
-
+                self.update()
         self.delete(loadingframe)
         self.flux_graph()
 
@@ -177,7 +179,7 @@ class FlareScreen(screen.Screen):
         labels = [line.get_label() for line in lines]
         self.ax.legend(lines, labels)
         self.graph.draw()
-        self.frame.update()
+        self.update()
         #self.start_movie()
 
     def click(self, event):
@@ -197,10 +199,10 @@ class FlareScreen(screen.Screen):
         self.rect = patches.Rectangle((x - w/2, y - w/2), w, w, linewidth=1, edgecolor='white', facecolor='black', alpha=0.2)
         self.aia_ax.add_patch(self.rect)
         self.image.draw()
-        self.frame.update()
+        self.update()
 
     # def start_movie(self):
-    #     self.movieframe = tk.Frame(self.frame, background='#81868F', padx=1, pady=1)
+    #     self.movieframe = tk.Frame(self, background='#81868F', padx=1, pady=1)
     #     self.movieframe.grid(row=0, column=2, padx=(20, 20))
     #     w = 0
     #     longest = 0
@@ -226,7 +228,7 @@ class FlareScreen(screen.Screen):
     #     idx = 0
     #     while self.active:
     #         images[idx].get_tk_widget().grid(row=0, column=0)
-    #         self.frame.update()
+    #         self.update()
     #         time.sleep(0.5)
     #         images[idx].get_tk_widget().grid_forget()
     #         idx += 1
@@ -234,7 +236,7 @@ class FlareScreen(screen.Screen):
     #             idx = 0
 
     def next(self):
-        return moviescreen.MovieScreen(self.root, self.style, self.flare)
+        return moviescreen.MovieScreen(self.root, self.flare)
 
 
 

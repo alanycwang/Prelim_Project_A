@@ -13,8 +13,8 @@ import pickle
 import os
 
 class EntryScreen(screen.Screen):
-    def __init__(self, root, style):
-        super().__init__(root, style)
+    def __init__(self, root):
+        super().__init__(root)
 
         self.date_entry()
         self.file_loader()
@@ -23,8 +23,10 @@ class EntryScreen(screen.Screen):
         self.path=None
         self.previous_path=None
 
+        self.id = "entryscreen"
+
     def date_entry(self):
-        self.dateentry = tk.Frame(self.frame)
+        self.dateentry = tk.Frame(self)
         self.dateentryborder = tk.Frame(self.dateentry, background='#81868F', padx=1, pady=1)
         self.entryFrameContainer = tk.Frame(self.dateentryborder, background='#FFFFFF', borderwidth=20)
         self.entryFrame = tk.Frame(self.entryFrameContainer, background='#FFFFFF')
@@ -68,7 +70,7 @@ class EntryScreen(screen.Screen):
         self.dateentry.grid(row=0, column=0, sticky="NW")
 
     def file_loader(self):
-        self.fileloader = tk.Frame(self.frame, background='#81868F', padx=1, pady=1)
+        self.fileloader = tk.Frame(self, background='#81868F', padx=1, pady=1)
         self.fileloaderbackground = tk.Frame(self.fileloader, background='#FFFFFF')
 
         self.fileloaderlabel = tk.Label(self.fileloaderbackground, text="Option 2: Load data from a save file", background='#FFFFFF')
@@ -97,7 +99,7 @@ class EntryScreen(screen.Screen):
     def next(self):
         if self.path is not None:
             try:
-                return savefile.generate_screens(pickle.load(open(self.path, "rb")), self.root, self.style)
+                return savefile.generate_screens(pickle.load(open(self.path, "rb")), self.root)
             except:
                 self.filetext.configure(text="Something went wrong, please try again", fg="black")
                 return "error"
@@ -138,7 +140,7 @@ class EntryScreen(screen.Screen):
 
         # print(str(start_date_time))
 
-        screen = xrs.XRS(self.root, self.style, str(start_date_time), str(end_date_time))
+        screen = xrs.XRS(self.root, str(start_date_time), str(end_date_time))
         self.last_start_time = start_date_time
         self.last_end_time = end_date_time
 

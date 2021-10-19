@@ -27,11 +27,11 @@ import _thread
 import flarescreen
 
 class XRS(screen.Screen):
-    def __init__(self, root, style, tstart, tend, from_save=False, ts=None, peaks=None, flares=[]):
-        super().__init__(root, style)
+    def __init__(self, root, tstart, tend, from_save=False, ts=None, peaks=None, flares=[]):
+        super().__init__(root)
 
-        self.listframe = tk.Frame(self.frame)
-        self.canvasframe = ttk.Frame(self.frame)
+        self.listframe = tk.Frame(self)
+        self.canvasframe = ttk.Frame(self)
 
         self.screens = {}
         self.flare = None
@@ -40,10 +40,8 @@ class XRS(screen.Screen):
         self.tstart = tstart
         self.tend = tend
         self.peaks = peaks
-        for flare in flares:
-            self.screens[flare.peak] = flarescreen.FlareScreen(self.root, self.style, flare, self.ts1)
 
-        self.load_text = ttk.Label(self.frame, text="Downloading XRS Data...")
+        self.load_text = ttk.Label(self, text="Downloading XRS Data...")
         try:
             _thread.start_new_thread(self.graph, (tstart, tend))
         except urllib.error.URLError:
@@ -56,7 +54,7 @@ class XRS(screen.Screen):
         if len(self.flares) > 0:
             self.get_selection(None, self.flares[0])
 
-        self.clear()
+        self.id = "xrs"
 
 
     def getTS(self, tstart, tend):
@@ -76,7 +74,7 @@ class XRS(screen.Screen):
                 print(f'Found existing file at {path}')
                 files.append(path)
             else:
-                files.append(Fido.fetch(file, path='./Data/{file}'))
+                files.append(Fido.fetch(file, path='Data/{file}'))
 
         try:
             return ts.TimeSeries(files, concatenate=True)
@@ -131,7 +129,7 @@ class XRS(screen.Screen):
         self.ax2.minorticks_off()
 
     def graph(self, tstart, tend):
-        self.canvasframe = tk.Frame(self.frame, background='#81868F', padx=1, pady=1)
+        self.canvasframe = tk.Frame(self, background='#81868F', padx=1, pady=1)
 
         self.canvasframe.grid(row=0, column=0)
         self.load_text.grid(row=0, column=1, sticky="NW")
@@ -203,7 +201,7 @@ class XRS(screen.Screen):
         return peaks
 
     def flareslist(self):
-        self.listframe = ttk.Frame(self.frame)
+        self.listframe = ttk.Frame(self)
         self.listtitle = ttk.Label(self.listframe, text="")
         self.treeviewframe = ttk.Frame(self.listframe)
         self.load_frame = ttk.Frame(self.listframe)
@@ -283,7 +281,4 @@ class XRS(screen.Screen):
         self.aiacanvasframe.grid(row=1, column=1, sticky="NW", padx=(20, 0))
 
     def next(self):
-        if self.flare is not None:
-            if self.flare.peak not in self.screens:
-                self.screens[self.flare.peak] = flarescreen.FlareScreen(self.root, self.style, self.flare, self.ts1)
-            return self.screens[self.flare.peak]
+            return flarescreen.FlareScreen(self.root, self.flare, self.ts1)

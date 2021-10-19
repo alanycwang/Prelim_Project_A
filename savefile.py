@@ -3,9 +3,9 @@ import entryscreen
 import xrs
 import flarescreen
 
-def generate_screens(save, root, style):
+def generate_screens(save, root):
     if len(save) > 1:
-        return xrs.XRS(root, style, save.tstart, save.tend, from_save=True, ts=save.ts1, peaks=save.peaks, flares=save.flares)
+        return xrs.XRS(root, save.tstart, save.tend, from_save=True, ts=save.ts1, peaks=save.peaks, flares=save.flares)
     return None
 
 class SaveFile():
