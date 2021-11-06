@@ -49,5 +49,5 @@ class Screen(tk.Frame):
     def next(self):
         return None
 
-    def data(self):
-        return None
+    def save(self):
+        return 1000000000, None

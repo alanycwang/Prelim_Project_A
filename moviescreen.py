@@ -141,15 +141,9 @@ class MovieScreen(screen.Screen):
 
         self.cutouts = []
         for image in self.flare.images[w]:
-            fig = plt.figure()
-            #i = image.resample([1024, 1024]*u.pix) #resample to 1024, 1024 VERY SLOW
-            i = image.superpixel([4, 4]*u.pix) #fast combine pixels to 1024, 1024
-            #i = image #use raw image
-            ax = fig.add_subplot(111)
-            i.plot(ax)
+            fig, ax, _ = image.plot(clim=7500)
             #plt.axis('off')
             plt.autoscale(tight=True)
-            plt.clim(0, 15000*16) #groups of 16 pixels are combined so the image is 16 times brighter
 
             moviecanvas = FigureCanvasTkAgg(fig, master=self.fullimageframe)
             moviecanvas.draw_idle()
@@ -169,15 +163,8 @@ class MovieScreen(screen.Screen):
 
             xmin, xmax = self.xlim
             ymin, ymax = self.ylim
-            top_right = SkyCoord(((self.y_selection - self.cutout/2)*(xmax - xmin)/(4096) + xmin)*u.arcsec, ((self.x_selection - self.cutout/2)*(ymax - ymin)/(4096) + ymin)*u.arcsec, frame=image.coordinate_frame)
-            bottom_left = SkyCoord(((self.y_selection + self.cutout/2)*(xmax - xmin)/(4096) + xmin)*u.arcsec, ((self.x_selection + self.cutout/2)*(ymax - ymin)/(4096) + ymin)*u.arcsec, frame=image.coordinate_frame)
-            i = image.submap(bottom_left, top_right=top_right)
-
-            ax = fig.add_subplot(111)
-            i.plot(ax)
-            #plt.axis('off')
+            fig, ax, _ = image.plot_cutout(self.x_selection, self.y_selection, self.cutout, clim=7500)
             plt.autoscale(tight=True)
-            plt.clim(0, 15000)
 
             moviecanvas = FigureCanvasTkAgg(fig, master=self.fullimageframe)
             moviecanvas.draw_idle()
@@ -247,3 +234,6 @@ class MovieScreen(screen.Screen):
         self.cutout = self.cutoutslider.get()
         self.cutoutlabel.configure(text=f"Cutout Size: {int(self.cutout)}px")
         self.click(None)
+
+    def save(self):
+        return 0, [self.flare]

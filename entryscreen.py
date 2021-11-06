@@ -97,9 +97,9 @@ class EntryScreen(screen.Screen):
         self.filetext.configure(text="No file loaded", fg="black")
 
     def next(self):
-        if self.path is not None:
+        if self.path is not None and self.path != '':
             try:
-                return savefile.generate_screens(pickle.load(open(self.path, "rb")), self.root)
+                return [pickle.load(open(self.path, "rb"))]
             except:
                 self.filetext.configure(text="Something went wrong, please try again", fg="black")
                 return "error"

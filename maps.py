@@ -1,10 +1,3 @@
-#purely for faster movies; use Sunpy Map for coordinate system
-#add functionality for:
-#graphing
-#cutouts
-#time (astropy.time)
-#flux (through flare.get_graph)
-
 import matplotlib.pyplot as plt
 from matplotlib.colors import PowerNorm
 
@@ -13,6 +6,15 @@ import astropy.units as u
 from astropy.io import fits
 
 from sunpy.visualization.colormaps import cm
+
+from skimage.transform import resize
+
+#purely for faster movies; use Sunpy Map for coordinate system
+#add functionality for:
+#graphing
+#cutouts
+#time (astropy.time)
+#flux (through flare.get_graph)
 
 
 class Image():
@@ -31,15 +33,15 @@ class Image():
 
     def plot(self, clim=None, data=None):
         if data is None: data = self.data
-
+        data = resize(data, (1024, 1024))
         fig, ax = plt.subplots()
-        ax.imshow(data, cmap=cm.cmlist['sdoaia'+str(self.wavelength)], norm=PowerNorm(gamma=0.5), origin='lower')
-        if clim is not None: plt.clim(0, clim)
-        return fig, ax
+        im = ax.imshow(data, cmap=cm.cmlist['sdoaia'+str(self.wavelength)], norm=PowerNorm(gamma=0.5), origin='lower')
+        if clim is not None: im.set_clim(0, clim)
+        return fig, ax, im
 
     def plot_cutout(self, x, y, w, clim=None):
-        data = self.data[x-w/2:x+w/2, y-w/2:y+w/2]
-        self.plot(clim=clim, data=data)
+        data = self.data[int(x-w/2):int(x+w/2), int(y-w/2):int(y+w/2)]
+        return self.plot(clim=clim, data=data)
 
     def get_flux(self, x=None, y=None, w=250):
         if (x is None and y is None) or (x == self.flare_x and y == self.flare_y):
@@ -47,6 +49,7 @@ class Image():
         return get_graph(self.data, x, y, w=w)
 
 def get_graph(data, x, y, w=250, res=4096):
+
     xmin = max(0, x - w)
     xmax = min(res, x + w + 1)
     ymin = max(0, y - w)

@@ -3,30 +3,28 @@ import entryscreen
 import xrs
 import flarescreen
 
-def generate_screens(save, root):
-    if len(save) > 1:
-        return xrs.XRS(root, save.tstart, save.tend, from_save=True, ts=save.ts1, peaks=save.peaks, flares=save.flares)
-    return None
-
 class SaveFile():
     def __init__(self, screens):
-        self.length = len(screens)
+        order = []
+        contents = []
 
-        if len(screens) < 2:
-            self.flare = None
-            self.ts1 = None
-            self.peaks = None
-            return
+        # 1: go through each screen
+        for item in screens:
 
-        self.flares = []
-        for screen in screens[1].screens:
-            self.flares.append(screens[1].screens[screen].flare)
-        self.ts1 = screens[1].ts1
-        self.peaks = screens[1].peaks
-        self.tstart = screens[1].tstart
-        self.tend = screens[1].tend
+            # 2: check id and add it to a list
+            order.append(type(item))
 
+            # 3: record contents
+            rank, c = item.save()
+            contents.append([rank, c])
 
-    def __len__(self):
-        return self.length
+        # 4: compress contents
+        # 4.1: dump all important contents into an array (ts, flare, peaks)
 
+        flares = []
+        times = []
+        for item in contents:
+            pass
+        # 4.2: create a list of all individual peaks (including contents of peaks)
+        # 4.3: create a new array that matches each screen with its resepctive content from 4.2
+        # 5 pickle dump

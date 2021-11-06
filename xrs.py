@@ -281,4 +281,7 @@ class XRS(screen.Screen):
         self.aiacanvasframe.grid(row=1, column=1, sticky="NW", padx=(20, 0))
 
     def next(self):
-            return flarescreen.FlareScreen(self.root, self.flare, self.ts1)
+        return flarescreen.FlareScreen(self.root, self.flare, self.ts1)
+
+    def data(self):
+        return 2, [self.peaks, self.ts1]

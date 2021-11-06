@@ -7,6 +7,7 @@ import flarescreen
 import entryscreen
 import pickle
 import savefile
+import screen
 
 class App(tk.Tk):
     def __init__(self):
@@ -25,7 +26,6 @@ class App(tk.Tk):
 
         self.tab_parent = ttk.Notebook(self.tabFrame)
         new = entryscreen.EntryScreen(self.tab_parent)
-        print(str(new))
         self.screens = {str(new) : new}
         self.tab_parent.add(new, text=new.id)
         self.show_navigation()
@@ -45,7 +45,7 @@ class App(tk.Tk):
 
     def save(self):
         path = asksaveasfile(filetypes=[('Pickle Files', '*.pkl')], defaultextension=[("Pickle Files", "*.pkl")])
-        pickle.dump(savefile.SaveFile(self.screens), open(path.name, 'wb'))
+        pickle.dump(self.screens, open(path.name, 'wb'))
         print("Saved File to " + path.name)
 
     def next_screen(self):
@@ -58,9 +58,10 @@ class App(tk.Tk):
         #         self.screens[1] = flarescreen.FlareScreen(self, self.style, flare, self.screens[0].ts1)
 
         new = self.screens[self.tab_parent.select()].next()
-        print(new)
-        print(str(new))
-        print(self.tab_parent.select())
+        if not issubclass(type(new), screen.Screen):
+            self.screens = new
+            for item in self.screens:
+                self.tab_parent.add(item, text=item.id)
         self.screens[str(new)] = new
         self.tab_parent.add(new, text=new.id)
         self.update_idletasks()

@@ -12,6 +12,8 @@ from os.path import exists
 import drms
 import urllib.request
 
+import maps, imagesequence
+
 class Flare():
     def __init__(self, start, peak, flux):
         self.start = start
@@ -56,9 +58,10 @@ class Flare():
                 self.intensity = self.flux / 1e-4
 
     def get_file(self, t, wavelength=171, aec=True, gen_map=True):
+        #when collecting files, get all filedata at the same time
 
         jsoc = drms.Client()
-        k, s = jsoc.query(f"aia.lev1_euv_12s[{t.to_value('fits')[:-4]}/12s][{wavelength}]", key=['T_OBS', 'WAVELNTH', 'AECTYPE'],
+        k, s = jsoc.query(f"aia.lev1_euv_12s[{t.to_value('fits')[:-4]}/15s][{wavelength}]", key=['T_OBS', 'WAVELNTH', 'AECTYPE'],
                           seg='image')
 
         #print(k)
@@ -70,10 +73,16 @@ class Flare():
 
         #print(k['T_OBS'][0])
         if aec and int(k['AECTYPE'][0]) <= 0:
-            return self.get_file(t + 12*u.s, wavelength=wavelength, aec=aec)
+            return self.get_file(t + 12*u.s, wavelength=wavelength, aec=aec, gen_map=gen_map)
         fh = f"./Data/aia.lev1_euv_12s[{k['T_OBS'][0].replace(':', '-')}][{wavelength}].fits"
-        urllib.request.urlretrieve(files[0], fh)
-        if not gen_map: return fh
+        #print("downloading")
+        try: urllib.request.urlretrieve(files[0], fh)
+        except urllib.error.URLError:
+            return self.get_file(t, wavelength=wavelength, aec=aec, gen_map=gen_map)
+        #print("done downloading")
+        #print("working")
+        if not gen_map:
+            return fh
         map = sunpy.map.Map(fh)
         return map
 
@@ -99,7 +108,7 @@ class Flare():
             self.map = self.get_file(t, 171)
 
             brightest = np.argwhere(self.map.data == self.map.data.max())
-            print(brightest)
+            #print(brightest)
             brightest_hpc = self.map.pixel_to_world(brightest[:, 1]*u.pix, brightest[:, 0]*u.pix)
             self.coords = brightest_hpc
             temp = self.coords.to_string()[0].split(' ')
@@ -127,11 +136,11 @@ class Flare():
                 count += 1
                 progresslabel._nametowidget(progresslabel.winfo_parent()).update()
 
-            image = self.get_file(peak + interval*(i + 1), wavelength)
+            image = self.get_file(peak + interval*(i + 1), wavelength=wavelength, gen_map=False)
             if image is None:
                 print("Skipped File at time" + str(peak + interval*(i + 1)))
                 continue
-            image = self.normalize(image)
+            #image = self.normalize(image)
             images.append(image)
             if progressbar is not None:
                 progressbar.step()
@@ -143,57 +152,40 @@ class Flare():
                 count += 1
                 progresslabel._nametowidget(progresslabel.winfo_parent()).update()
 
-            image = self.get_file(peak - interval*(i + 1), wavelength)
+            image = self.get_file(peak - interval*(i + 1), wavelength=wavelength, gen_map=False)
             if image is None:
                 print("Skipped File at time" + str(peak - interval*(i + 1)))
                 continue
-            image = self.normalize(image)
+            #image = self.normalize(image)
             images.insert(0, image)
             if progressbar is not None:
                 progressbar.step()
                 progressbar._nametowidget(progressbar.winfo_parent()).update()
 
-        self.images[wavelength] = images
-
-    def get_graph(self, image, x=None, y=None):
-        if x is None:
-            x = self.x_pixel
-        if y is None:
-            y = self.y_pixel
-
-        bbox = 250
-        xmin = max(0, x - bbox)
-        xmax = min(4096, x + bbox + 1)
-        ymin = max(0, y - bbox)
-        ymax = min(4096, y + bbox + 1)
-
-        df = image.data
-        sum = 0
-        for i in range(int(xmin + 0.5), int(xmax + 0.5)):
-            for j in range(int(ymin + 0.5), int(ymax + 0.5)):
-                sum += df[i][j]
-        return sum
+        self.images[wavelength] = imagesequence.ImageSequence(images, self.x_pixel, self.y_pixel)
 
     def get_graphs(self, wavelength=171, progressbar=None, progresslabel=None, x=None, y=None):
         #cant reference self in parameters
-        if x is None:
-            x = self.x_pixel
-        if y is None:
-            y = self.y_pixel
-
+        # if x is None:
+        #     x = self.x_pixel
+        # if y is None:
+        #     y = self.y_pixel
+        #
         if not wavelength in self.images:
             self.get_images(wavelength, progressbar, progresslabel)
-
-        data = []
-        times = []
-
-        for image in self.images[wavelength]:
-            sum = self.get_graph(image, x, y)
-
-            data.append(sum)
-            times.append(image.date.datetime)
-        self.graphs[wavelength] = [times, data]
+        #
+        # data = []
+        # times = []
+        #
+        # for image in self.images[wavelength]:
+        #     sum = map.get_graph(image, x, y)
+        #
+        #     data.append(sum)
+        #     times.append(image.date.datetime)
+        # self.graphs[wavelength] = [times, data]
         self.extend_left()
+
+        self.graphs[wavelength] = self.images[wavelength].get_plotdata(x=x, y=y)
 
     def normalize(self, image):
         if image is None: return None
@@ -213,15 +205,14 @@ class Flare():
         #make sure that image in the given time range exists; if not, skip to the next one
         #make sure that you never get the same image twice (to avoid divide by 0)
 
-        start_time = astropy.time.Time(self.images[171][0].date.datetime)
+        start_time = self.images[171][0].time
         i = 3
         t = [(start_time - j*interval*u.s).to_datetime() for j in range(3)]
-        arr = [self.normalize(self.get_file(astropy.time.Time(time), wavelength=171, aec=False)) for time in t]
-        graphs = [self.get_graph(image) for image in arr]
+        arr = [maps.Image(self.get_file(astropy.time.Time(time), wavelength=171, aec=False, gen_map=False), self.x_pixel, self.y_pixel) for time in t]
         f =  False
         while True:
             #print(graphs[-1])
-            d = (graphs[-3] - graphs[-1]) / (t[-3] - t[-1]).seconds
+            d = (arr[-3].flux - arr[-1].flux) / (t[-3] - t[-1]).seconds
             if abs(d) <= 500:
                 if f:
                     break
@@ -229,19 +220,15 @@ class Flare():
             else:
                 f = False
             t.append((start_time - i*interval*u.s).to_datetime())
-            arr.append(self.normalize(self.get_file(astropy.time.Time(t[-1]), wavelength=171, aec=False)))
-            graphs.append(self.get_graph(arr[-1]))
+            arr.append(maps.Image(self.get_file(astropy.time.Time(t[-1]), wavelength=171, aec=False, gen_map=False), self.x_pixel, self.y_pixel))
             i += 1
+            if i > 30:
+                break
 
-        arr.reverse()
-        t.reverse()
-        graphs.reverse()
+        for image in arr:
+            self.images[171].insert(0, image)
 
-        self.images[171] = arr + self.images[171]
-        self.graphs[171][0] = t + self.graphs[171][0]
-        self.graphs[171][1] = graphs + self.graphs[171][1]
-
-        self.background_flux = self.graphs[171][1][0]
+        self.background_flux = self.images[171][0].flux
         self.extend_right()
 
     def extend_right(self):
@@ -253,27 +240,26 @@ class Flare():
         interval = duration / number * 60 * 2
 
         peak_flux = -1
-        for value in self.graphs[171][1]:
-            peak_flux = max(peak_flux, value)
+        for image in self.images[171]:
+            peak_flux = max(peak_flux, image.flux)
 
-        print(peak_flux)
+        #print(peak_flux)
 
-        t = astropy.time.Time(self.graphs[171][0][-1])
+        t = self.images[171][-1].time
         arr = []
         times = []
-        graphs = []
 
-        i = 0
+        i = 1
         while(True):
             times.append((t + i*interval*u.s).to_datetime())
-            arr.append(self.normalize(self.get_file(astropy.time.Time(times[-1]), wavelength=171, aec=False)))
-            graphs.append(self.get_graph(arr[-1]))
-            if graphs[-1] <= (peak_flux + self.background_flux)/2: break
+            arr.append(maps.Image(self.get_file(astropy.time.Time(times[-1]), wavelength=171, aec=False, gen_map=False), self.x_pixel, self.y_pixel))
+            if arr[-1].flux <= (peak_flux + self.background_flux)/2: break
             i += 1
+            if i > 30:
+                break
 
-        self.images[171] = self.images[171] + arr
-        self.graphs[171][0] = self.graphs[171][0] + times
-        self.graphs[171][1] = self.graphs[171][1] + graphs
+        for image in arr:
+            self.images[171].append(image)
 
 
 

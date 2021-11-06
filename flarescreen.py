@@ -238,6 +238,9 @@ class FlareScreen(screen.Screen):
     def next(self):
         return moviescreen.MovieScreen(self.root, self.flare)
 
+    def data(self):
+        return 1, [self.flare]
+
 
 
 
