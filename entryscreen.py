@@ -98,11 +98,11 @@ class EntryScreen(screen.Screen):
 
     def next(self):
         if self.path is not None and self.path != '':
-            try:
-                return [pickle.load(open(self.path, "rb"))]
-            except:
-                self.filetext.configure(text="Something went wrong, please try again", fg="black")
-                return "error"
+            #try:
+                return pickle.load(open(self.path, "rb"))
+            # except:
+            #     self.filetext.configure(text="Something went wrong, please try again", fg="black")
+            #     return "error"
 
 
         if not self.start_time.get_time():

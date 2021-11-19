@@ -239,7 +239,7 @@ class FlareScreen(screen.Screen):
         return moviescreen.MovieScreen(self.root, self.flare)
 
     def data(self):
-        return 1, [self.flare]
+        return 1, [self.flare, self.ts]
 
 
 

@@ -20,12 +20,12 @@ from skimage.transform import resize
 class Image():
     def __init__(self, file, flare_x, flare_y):
         with fits.open(file) as hdul:
-            self.header = hdul[1].header
-            self.exp = self.header['EXPTIME']
-            self.time = astropy.time.Time(self.header['DATE-OBS'])
-            self.wavelength = self.header['WAVELNTH']
+            header = hdul[1].header
+            self.exp = header['EXPTIME']
+            self.time = astropy.time.Time(header['DATE-OBS'])
+            self.wavelength = header['WAVELNTH']
             self.data = hdul[1].data/self.exp
-            #print(self.header)
+            #print(header)
 
         self.flux = get_graph(self.data, flare_x, flare_y)
         self.flare_x = flare_x

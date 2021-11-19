@@ -27,7 +27,7 @@ import _thread
 import flarescreen
 
 class XRS(screen.Screen):
-    def __init__(self, root, tstart, tend, from_save=False, ts=None, peaks=None, flares=[]):
+    def __init__(self, root, tstart, tend, ts=None, peaks=None):
         super().__init__(root)
 
         self.listframe = tk.Frame(self)
@@ -35,10 +35,9 @@ class XRS(screen.Screen):
 
         self.screens = {}
         self.flare = None
-        self.flares = flares
-        self.ts1 = ts
         self.tstart = tstart
         self.tend = tend
+        self.ts1 = ts
         self.peaks = peaks
 
         self.load_text = ttk.Label(self, text="Downloading XRS Data...")
@@ -50,9 +49,6 @@ class XRS(screen.Screen):
         except sunpy.util.datatype_factory_base.NoMatchError:
             self.load_text.config(text="Unfortunately, the downloaded file was corrupted. Please try a different date")
             return
-
-        if len(self.flares) > 0:
-            self.get_selection(None, self.flares[0])
 
         self.id = "xrs"
 
@@ -100,7 +96,7 @@ class XRS(screen.Screen):
         self.fig = plt.figure()
         self.ax = self.ts1.plot()
 
-        self.fig.set_size_inches(15.63, 4)
+        self.fig.set_size_inches(14.38, 4)
 
         c = True
         for flare in self.peaks:
@@ -142,8 +138,6 @@ class XRS(screen.Screen):
         self.canvas.draw()
 
         # self.toolbar = NavigationToolbar2Tk(self.canvas, self.canvasframe)
-
-        cursor = MultiCursor(self.canvas, [self.ax], vertOn=True)
 
         self.canvas.get_tk_widget().pack()
         self.load_text.grid_forget()
@@ -215,25 +209,23 @@ class XRS(screen.Screen):
         self.bar.grid(row=0, column=1, sticky="NW")
         self.listframe.update()
 
-        self.list = ttk.Treeview(self.treeviewframe, selectmode="browse", columns=('#1', '#2', '#3', '#4', '#5', '#6', '#7'), height=23)
+        self.list = ttk.Treeview(self.treeviewframe, selectmode="browse", columns=('#1', '#2', '#3', '#4', '#5', '#6'), height=23)
         self.list.bind('<<TreeviewSelect>>', self.get_selection)
 
         self.list.column("#0", minwidth=0, width=0, stretch=tk.NO)
         self.list.column("#1", minwidth=50, width=50, stretch=tk.NO)
-        self.list.column("#2", minwidth=125, width=125, stretch=tk.NO)
+        self.list.column("#2", minwidth=175, width=175, stretch=tk.NO)
         self.list.column("#3", minwidth=175, width=175, stretch=tk.NO)
         self.list.column("#4", minwidth=175, width=175, stretch=tk.NO)
-        self.list.column("#5", minwidth=175, width=175, stretch=tk.NO)
+        self.list.column("#5", minwidth=100, width=100, stretch=tk.NO)
         self.list.column("#6", minwidth=100, width=100, stretch=tk.NO)
-        self.list.column("#7", minwidth=100, width=100, stretch=tk.NO)
 
         self.list.heading("#1", text="Class", anchor=tk.W)
-        self.list.heading("#2", text="Intensity")
-        self.list.heading("#3", text="Peak Time")
-        self.list.heading("#4", text="Start Time")
-        self.list.heading("#5", text="End Time")
-        self.list.heading("#6", text="HPC X")
-        self.list.heading("#7", text="HPC Y")
+        self.list.heading("#2", text="Peak Time")
+        self.list.heading("#3", text="Start Time")
+        self.list.heading("#4", text="End Time")
+        self.list.heading("#5", text="HPC X")
+        self.list.heading("#6", text="HPC Y")
 
         # self.scrollbar = ttk.Scrollbar(self.treeviewframe, orient="vertical", command=self.list.yview)
         # self.list.configure(yscroll=self.scrollbar.set)
@@ -243,7 +235,7 @@ class XRS(screen.Screen):
             self.listframe.update()
             flare.get_class()
             flare.calc_location()
-            self.list.insert("", 0, text=i, values=(flare.classification, flare.intensity, flare.peak, flare.start, flare.end, flare.x, flare.y))
+            self.list.insert("", 0, text=i, values=(flare.classification + str(flare.intensity)[:3], flare.peak, flare.start, flare.end, flare.x, flare.y))
             self.bar.step()
             self.listframe.update()
 
@@ -273,6 +265,7 @@ class XRS(screen.Screen):
         ax = plt.subplot(projection=self.flare.map)
         self.flare.map.plot(ax)
         ax.plot_coord(self.flare.coords, 'wx', fillstyle='none', markersize=10)
+        plt.clim(0, 15000)
         plt.colorbar()
 
         self.aiacanvas = FigureCanvasTkAgg(fig, master=self.aiacanvasframe)
@@ -284,4 +277,4 @@ class XRS(screen.Screen):
         return flarescreen.FlareScreen(self.root, self.flare, self.ts1)
 
     def data(self):
-        return 2, [self.peaks, self.ts1]
+        return 2, [self.peaks, [self.ts1, self.tstart, self.tend]]

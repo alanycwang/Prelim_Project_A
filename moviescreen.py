@@ -235,5 +235,5 @@ class MovieScreen(screen.Screen):
         self.cutoutlabel.configure(text=f"Cutout Size: {int(self.cutout)}px")
         self.click(None)
 
-    def save(self):
+    def data(self):
         return 0, [self.flare]
