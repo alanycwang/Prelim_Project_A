@@ -10,6 +10,7 @@ import sunpy
 import sunpy.map
 from astropy import units as u
 from astropy.coordinates import SkyCoord
+import numpy as np
 
 class MovieScreen(screen.Screen):
     def __init__(self, root, flare):
@@ -52,18 +53,19 @@ class MovieScreen(screen.Screen):
 
         self.usecutout = tk.IntVar()
         self.usecutout.set(0)
-        self.checkboxframe = tk.Frame(self.optionsbackground, background='#FFFFFF')
-        self.checkboxframe.grid(row=4, column=0, padx=20, pady=(0, 20), sticky="NW")
-        self.cutoutcheckbox = ttk.Checkbutton(self.checkboxframe, variable=self.usecutout, command=self.checkedbox, takefocus=False)
-        self.cutoutcheckbox.grid(row=0, column=0, sticky="NW")
-        self.checkboxlabel = tk.Label(self.checkboxframe, text=' Generate Cutouts', background='white')
-        self.checkboxlabel.grid(row=0, column=1, sticky="NW")
+        self.cutoutcheckbox = ttk.Checkbutton(self.optionsbackground, text="Generate Cutouts", variable=self.usecutout, command=self.checkedbox, takefocus=False)
+        self.cutoutcheckbox.grid(row=4, column=0, padx=20, pady=(0, 20), sticky="NW")
 
         self.cutoutlabel = tk.Label(self.optionsbackground, text='Cutout Size: 250px', background='white')
         self.cutoutlabel.grid(row=5, column=0, padx=20, pady=(0, 10), sticky="NW")
 
         self.cutoutslider = ttk.Scale(self.optionsbackground, from_=50, to=1000, orient=tk.HORIZONTAL, value=250, command=self.update_cutout, state="disabled")
         self.cutoutslider.grid(row=6, column=0, padx=20, pady=(0, 20), sticky="NW")
+
+        self.derivative = tk.IntVar()
+        self.derivative.set(0)
+        self.derivativecheckbox = ttk.Checkbutton(self.optionsbackground, text="Plot Derivative", variable=self.derivative, takefocus=False)
+        self.derivativecheckbox.grid(row=7, column=0, padx=20, pady=(0, 20), sticky="NW")
 
         self.playbutton = ttk.Button(self.optionsbackground, text='Play', command=self.play)
         self.playbutton.grid(row=20, column=0, pady=(0, 20))
@@ -87,28 +89,18 @@ class MovieScreen(screen.Screen):
         self.imagecanvas = FigureCanvasTkAgg(self.fig, master=self.fullimageframe)
         self.imagecanvas.draw_idle()
         self.imagecanvas.get_tk_widget().grid(row=0, column=0, sticky="NW")
-        self.xlim = self.ax.get_xlim()
-        self.ylim = self.ax.get_ylim()
         self.rect = None
-        xmin, xmax = self.xlim
-        ymin, ymax = self.ylim
-        x = self.flare.y_pixel / 4096 * (xmax - xmin) + xmin
-        y = self.flare.x_pixel / 4096 * (ymax - ymin) + ymin
-        self.x_selection = 4096 * (y - ymin) / (ymax - ymin)
-        self.y_selection = 4096 * (x - xmin) / (xmax - xmin)
-        self.rectx = x
-        self.recty = y
+        self.x_selection = self.flare.x_pixel
+        self.y_selection = self.flare.y_pixel
+        self.rectx = self.flare.x_pixel
+        self.recty = self.flare.y_pixel
         self.cutout = 250
         self.imagecanvas.mpl_connect('button_press_event', self.click)
 
     def checkedbox(self):
         if self.usecutout.get():
             self.cutoutslider.configure(state='enable')
-            xmin, xmax = self.xlim
-            ymin, ymax = self.ylim
-            x = self.flare.y_pixel / 4096 * (xmax - xmin) + xmin
-            y = self.flare.x_pixel / 4096 * (ymax - ymin) + ymin
-            self.draw_box(x, y, self.cutout / 4096 * (xmax - xmin))
+            self.draw_box(self.flare.x_pixel, self.flare.y_pixel, self.cutout)
         else:
             self.cutoutslider.configure(state='disabled')
             if self.rect is not None:
@@ -140,8 +132,16 @@ class MovieScreen(screen.Screen):
             return
 
         self.cutouts = []
-        for image in self.flare.images[w]:
-            fig, ax, _ = image.plot(clim=7500)
+        if self.derivative.get():
+            d = self.flare.images[w].raw_data()
+            d = np.gradient(d, axis=0)
+            clim = np.amax(d)
+
+        for i, image in enumerate(self.flare.images[w]):
+            if self.derivative.get():
+                fig, ax, _ = image.plot(clim=clim, data=d[i])
+            else:
+                fig, ax, _ = image.plot(clim=True)
             #plt.axis('off')
             plt.autoscale(tight=True)
 
@@ -158,12 +158,16 @@ class MovieScreen(screen.Screen):
 
     def generate_cutouts(self, w):
         self.cutouts = []
-        for image in self.flare.images[w]:
-            fig = plt.figure()
 
-            xmin, xmax = self.xlim
-            ymin, ymax = self.ylim
-            fig, ax, _ = image.plot_cutout(self.x_selection, self.y_selection, self.cutout, clim=7500)
+        if self.derivative.get():
+            d = self.flare.images[w].raw_data()
+            d = np.gradient(d, axis=0)
+            clim = np.amax(d)
+
+        for i, image in enumerate(self.flare.images[w]):
+            if self.derivative.get():
+                fig, ax, _ = image.plot_cutout(self.x_selection, self.y_selection, self.cutout, clim=clim, data=d[i])
+            else: fig, ax, _ = image.plot_cutout(self.x_selection, self.y_selection, self.cutout, clim=True)
             plt.autoscale(tight=True)
 
             moviecanvas = FigureCanvasTkAgg(fig, master=self.fullimageframe)
@@ -205,20 +209,11 @@ class MovieScreen(screen.Screen):
         self.update_image(idx)
 
     def click(self, event):
-        if not self.usecutout.get():
+        if not self.usecutout.get() or event is None or event.xdata is None:
             return
-        if event is not None and event.xdata is None:
-            return
-        if event is not None:
-            self.rectx = event.xdata
-            self.recty = event.ydata
-        x = self.rectx
-        y = self.recty
-        xmin, xmax = self.xlim
-        ymin, ymax = self.ylim
-        self.x_selection = 4096 * (y - ymin) / (ymax - ymin)
-        self.y_selection = 4096 * (x - xmin) / (xmax - xmin)
-        self.draw_box(x, y, self.cutout / 4096 * (xmax - xmin))
+        self.x_selection = event.xdata
+        self.y_selection = event.ydata
+        self.draw_box(event.xdata, event.ydata, self.cutout)
 
     def draw_box(self, x, y, w):
         if self.rect is not None:

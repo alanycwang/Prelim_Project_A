@@ -9,6 +9,9 @@ import pickle
 import savefile
 import screen
 import customnotebook
+import export
+import flare
+import flareinfo
 
 class App(tk.Tk):
     def __init__(self):
@@ -37,11 +40,13 @@ class App(tk.Tk):
         self.next_button = ttk.Button(self.navigationFrame, text='Next', command=self.next_screen)
         # self.back_button = ttk.Button(self.navigationFrame, text='Back')
         self.save_button = ttk.Button(self.navigationFrame, text='Save Progress', command=self.save)
+        self.export_button = ttk.Button(self.navigationFrame, text='Export Flare Data', command=self.open_export)
 
         self.navigationFrame.grid(row=0 , column=0, sticky="NW", padx=(20, 0), pady=(20, 0))
         self.next_button.grid(row=0, column=1, padx=(0, 10))
         # self.back_button.grid(row=0, column=0, padx=(0, 10))
-        self.save_button.grid(row=0, column=2)
+        self.save_button.grid(row=0, column=2, padx=(0, 10))
+        self.export_button.grid(row=0, column=3)
 
     def save(self):
         path = asksaveasfile(filetypes=[('Pickle Files', '*.pkl')], defaultextension=[("Pickle Files", "*.pkl")])
@@ -51,6 +56,13 @@ class App(tk.Tk):
         print("Saved File to " + path.name)
 
     def load(self, file):
+        if isinstance(file, flare.Flare):
+            new = flareinfo.FlareInfo(self.tab_parent, file)
+            self.tab_parent.add(new, text=new.id)
+            self.tab_parent.select(tab_id=self.tab_parent.index("end")-1)
+            self.update_idletasks()
+            return
+
         self.tab_parent.grid_remove()
         self.tab_parent = customnotebook.CustomNotebook(self.tabFrame)
         self.tab_parent.grid(row=0, column=0)
@@ -59,6 +71,13 @@ class App(tk.Tk):
         for screen in screens:
             self.tab_parent.add(screen, text=screen.id)
 
+    def open_export(self):
+        try:
+            flare = self.tab_parent.nametowidget(self.tab_parent.select()).flare
+        except AttributeError:
+            return
+
+        export.Export(flare, master=self)
 
     def next_screen(self):
         new = self.tab_parent.nametowidget(self.tab_parent.select()).next()

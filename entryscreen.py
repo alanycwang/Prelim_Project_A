@@ -39,7 +39,7 @@ class EntryScreen(screen.Screen):
         self.start_text = tk.Label(self.entryFrame, text="Start Date:", padx=2, pady=2, background='#FFFFFF')
         self.start_text.grid(row=1, column=0, sticky="NW")
 
-        self.start_cal = DateEntry(self.entryFrame, selectmode='day', year=2011, month=6, day=8, width=7)
+        self.start_cal = DateEntry(self.entryFrame, selectmode='day', year=2011, month=2, day=13, width=7)
         self.start_cal.grid(row=1, column=1, sticky="NW")
 
         self.start_time_text = tk.Label(self.entryFrame, text="Start Time:", padx=2, pady=2, background='#FFFFFF')
@@ -53,7 +53,7 @@ class EntryScreen(screen.Screen):
         self.end_text = tk.Label(self.entryFrame, text="End Date:", padx=2, pady=2, background='#FFFFFF')
         self.end_text.grid(row=4, column=0, sticky="NW")
 
-        self.end_cal = DateEntry(self.entryFrame, selectmode='day', year=2011, month=6, day=8, width=7)
+        self.end_cal = DateEntry(self.entryFrame, selectmode='day', year=2011, month=2, day=13, width=7)
         self.end_cal.grid(row=4, column=1, sticky="NW")
 
         self.end_time_text = tk.Label(self.entryFrame, text="End Time:", padx=2, pady=2, background='#FFFFFF')
@@ -97,12 +97,12 @@ class EntryScreen(screen.Screen):
         self.filetext.configure(text="No file loaded", fg="black")
 
     def next(self):
-        if self.path is not None and self.path != '':
-            #try:
+        if self.path is not None and self.path.strip() != '':
+            try:
                 return pickle.load(open(self.path, "rb"))
-            # except:
-            #     self.filetext.configure(text="Something went wrong, please try again", fg="black")
-            #     return "error"
+            except:
+                self.filetext.configure(text="Something went wrong, please try again", fg="black")
+                return "error"
 
 
         if not self.start_time.get_time():

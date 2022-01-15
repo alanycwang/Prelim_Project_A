@@ -8,6 +8,7 @@ class ImageSequence(list):
         super().__init__()
         for file in files:
             self.append(maps.Image(file, flare_x, flare_y))
+        print(flare_x, flare_y)
 
     def get_plotdata(self, x, y):
         times = []
@@ -17,6 +18,12 @@ class ImageSequence(list):
             flux.append(image.get_flux(x, y))
 
         return [times, flux]
+
+    def raw_data(self):
+        data = []
+        for image in self:
+            data.append(image.data)
+        return data
 
 
 
