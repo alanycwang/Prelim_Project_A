@@ -49,7 +49,9 @@ class XRS(screen.Screen):
             self.load_text.config(text="Unfortunately, the downloaded file was corrupted. Please try a different date")
             return
 
-        self.id = "xrs"
+        self.id = f"XRS Graphs: {format_time(tstart)} to {format_time(tend)}"
+        print(type(tstart))
+
 
     def getTS(self, tstart, tend):
         if tstart < "2020-03-01 00:00" and tend > "2020-03-01 00:00":
@@ -371,4 +373,5 @@ class Cursor:
             t = matplotlib.dates.num2date(event.xdata)
             self.frame.select(t)
 
-
+def format_time(s):
+    return f"{s[5:7]}/{s[8:10]}/{s[2:4]} {s[11:16]}"

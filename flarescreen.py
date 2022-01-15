@@ -14,6 +14,7 @@ import datetime
 import numpy as np
 import _thread
 import moviescreen
+import xrs
 
 import time
 
@@ -41,11 +42,11 @@ class FlareScreen(screen.Screen):
         self.selection_box()
         self.flux_graph()
 
-        self.left_container.grid(row=0, column=0, padx=(0, 20), pady=(0, 20))
+        self.left_container.grid(row=0, column=0, padx=(0, 20), pady=(0, 20), sticky="NW")
 
         self.aiaplots = {}
 
-        self.id = "flarescreen"
+        self.id = f"AIA Graphs: {xrs.format_time(str(self.flare.peak))}"
 
     def fix_location(self):
         arr = []

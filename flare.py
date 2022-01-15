@@ -66,7 +66,7 @@ class Flare():
         #when collecting files, get all filedata at the same time
 
         jsoc = drms.Client()
-        k, s = jsoc.query(f"aia.lev1_euv_12s[{t.to_value('fi ')[:-4]}/15s][{wavelength}]", key=['T_OBS', 'WAVELNTH', 'AECTYPE'],
+        k, s = jsoc.query(f"aia.lev1_euv_12s[{t.to_value('fits')[:-4]}/15s][{wavelength}]", key=['T_OBS', 'WAVELNTH', 'AECTYPE'],
                           seg='image')
 
         #print(k)

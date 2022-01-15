@@ -11,6 +11,7 @@ import sunpy.map
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 import numpy as np
+import xrs
 
 class MovieScreen(screen.Screen):
     def __init__(self, root, flare):
@@ -20,7 +21,7 @@ class MovieScreen(screen.Screen):
         #self.full_image()
         self.options()
 
-        self.id = "moviescreen"
+        self.id = self.id = f"Movie: {xrs.format_time(str(self.flare.peak))}"
 
     def options(self):
         self.optionsframe = tk.Frame(self, background='#81868F', padx=1, pady=1)

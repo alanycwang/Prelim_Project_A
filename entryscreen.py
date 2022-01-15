@@ -23,7 +23,7 @@ class EntryScreen(screen.Screen):
         self.path=None
         self.previous_path=None
 
-        self.id = "entryscreen"
+        self.id = "Home"
 
     def date_entry(self):
         self.dateentry = tk.Frame(self)

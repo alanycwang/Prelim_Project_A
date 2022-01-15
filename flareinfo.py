@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-import screen, flare, flarescreen, moviescreen
+import screen, flare, flarescreen, moviescreen, xrs
 
 class FlareInfo(screen.Screen):
     def __init__(self, root, flare):
@@ -11,7 +11,7 @@ class FlareInfo(screen.Screen):
 
         self.show_info()
 
-        self.id = "flareinfo"
+        self.id = self.id = f"Flare Data: {xrs.format_time(str(self.flare.peak))}"
 
     def show_info(self):
         infoborder = tk.Frame(self, background='#81868F', padx=1, pady=1)
